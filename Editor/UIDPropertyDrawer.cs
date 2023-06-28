@@ -1,9 +1,8 @@
 using System;
 
-using UnityEditor;
 using UnityEngine;
 
-using UniqueIdentifier;
+using UnityEditor;
 
 namespace UniqueIdentifier.Editor
 {

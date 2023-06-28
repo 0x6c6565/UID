@@ -1,77 +1,46 @@
+#if !(UNITY_EDITOR || UNITY_STANDALONE)
+#define CAN_SKIP_INIT
+#endif // !(UNITY_EDITOR || UNITY_STANDALONE)
+
+#define USE_FIXED_BYTES
+
 using System;
 using System.Runtime.InteropServices;
 
 namespace UniqueIdentifier
 {
     [Serializable]
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct UID : IEquatable<UID>, IComparable, IComparable<UID>
+    [StructLayout(LayoutKind.Explicit, Pack = 1, Size = 16)]
+    public
+#if USE_FIXED_BYTES
+        unsafe
+#endif // USE_FIXED_BYTES
+        struct UID : IEquatable<UID>, IEquatable<Guid>
     {
-        public UID(Guid guid)
-        {
-            unsafe
-            {
-                byte* b = (byte *)&guid;
+        public static readonly UID Empty = Guid.Empty;
 
-                _a = ((int)b[3] << 24) | ((int)b[2] << 16) | ((int)b[1] << 8) | b[0];
-                _b = (short)(((int)b[5] << 8) | b[4]);
-                _c = (short)(((int)b[7] << 8) | b[6]);
-                _d = b[8];
-                _e = b[9];
-                _f = b[10];
-                _g = b[11];
-                _h = b[12];
-                _i = b[13];
-                _j = b[14];
-                _k = b[15];
-            }
-        }
+#if USE_FIXED_BYTES
+        [FieldOffset(0)] public fixed byte value[16];
+#endif // USE_FIXED_BYTES
 
-        public UID(byte[] b)
-        {
-            if (b == null)
-                throw new ArgumentNullException("b");
-            if (b.Length != 16)
-                throw new ArgumentException("Unity.UID(byte[] b) requires 'b' size of 16 bytes.");
+        [FieldOffset(0)] public int _a;
+        [FieldOffset(4)] public short _b;
+        [FieldOffset(6)] public short _c;
 
-            _a = ((int)b[3] << 24) | ((int)b[2] << 16) | ((int)b[1] << 8) | b[0];
-            _b = (short)(((int)b[5] << 8) | b[4]);
-            _c = (short)(((int)b[7] << 8) | b[6]);
-            _d = b[8];
-            _e = b[9];
-            _f = b[10];
-            _g = b[11];
-            _h = b[12];
-            _i = b[13];
-            _j = b[14];
-            _k = b[15];
-        }
+#if USE_FIXED_BYTES
+        [FieldOffset(8)] public fixed byte bytes[8];
+#endif // USE_FIXED_BYTES
 
-#if UNITY_2021
-        public UID(ReadOnlySpan<byte> b) { this = new Guid(b); }
-#endif // UNITY_2021
+        [FieldOffset(8)] public byte _d;
+        [FieldOffset(9)] public byte _e;
+        [FieldOffset(10)] public byte _f;
+        [FieldOffset(11)] public byte _g;
+        [FieldOffset(12)] public byte _h;
+        [FieldOffset(13)] public byte _i;
+        [FieldOffset(14)] public byte _j;
+        [FieldOffset(15)] public byte _k;
 
-        public UID(string g) { this = new Guid(g); }
-
-        public UID(int a, short b, short c, byte[] d)
-        {
-            if (d == null)
-                throw new ArgumentNullException("d");
-            if (d.Length != 8)
-                throw new ArgumentException("Unity.UID(int a, short b, short c, byte[] d) requires 'd' size of 8 bytes.");
-
-            _a = a;
-            _b = b;
-            _c = c;
-            _d = d[0];
-            _e = d[1];
-            _f = d[2];
-            _g = d[3];
-            _h = d[4];
-            _i = d[5];
-            _j = d[6];
-            _k = d[7];
-        }
+        public static UID NewUID() => Guid.NewGuid();
 
         public UID(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
         {
@@ -88,19 +57,58 @@ namespace UniqueIdentifier
             _k = k;
         }
 
-        public UID(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
+        public UID(int a, short b, short c, byte[] d) : this(a, b, c, d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]) { }
+
+        public UID(byte[] bytes)
         {
-            _a = (int)a;
-            _b = (short)b;
-            _c = (short)c;
-            _d = d;
-            _e = e;
-            _f = f;
-            _g = g;
-            _h = h;
-            _i = i;
-            _j = j;
-            _k = k;
+#if USE_FIXED_BYTES && CAN_SKIP_INIT
+            fixed (byte * pBytes = value)
+            {
+                Buffer.MemoryCopy(&bytes, pBytes, 16, 16);
+            }
+#else // if (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
+            unsafe
+            {
+                _a = ((int)bytes[3] << 24) | ((int)bytes[2] << 16) | ((int)bytes[1] << 8) | bytes[0];
+                _b = (short)(((int)bytes[5] << 8) | bytes[4]);
+                _c = (short)(((int)bytes[7] << 8) | bytes[6]);
+                _d = bytes[8];
+                _e = bytes[9];
+                _f = bytes[10];
+                _g = bytes[11];
+                _h = bytes[12];
+                _i = bytes[13];
+                _j = bytes[14];
+                _k = bytes[15];
+            }
+#endif // (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
+        }
+
+        public UID(Guid guid)
+        {
+#if USE_FIXED_BYTES && CAN_SKIP_INIT
+            fixed (byte * pBytes = value)
+            {
+                Buffer.MemoryCopy(&guid, pBytes, 16, 16);
+            }
+#else // if (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
+            unsafe
+            {
+                byte* b = (byte*)&guid;
+
+                _a = ((int)b[3] << 24) | ((int)b[2] << 16) | ((int)b[1] << 8) | b[0];
+                _b = (short)(((int)b[5] << 8) | b[4]);
+                _c = (short)(((int)b[7] << 8) | b[6]);
+                _d = b[8];
+                _e = b[9];
+                _f = b[10];
+                _g = b[11];
+                _h = b[12];
+                _i = b[13];
+                _j = b[14];
+                _k = b[15];
+            }
+#endif // (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
         }
 
         /// <summary>Implementation to mirror <see cref="Guid.GetHashCode"/>.</summary>
@@ -110,8 +118,7 @@ namespace UniqueIdentifier
             return _a ^ (((int)_b << 16) | (int)(ushort)_c) ^ (((int)_f << 24) | _k);
         }
 
-        public override bool Equals(object obj) { return obj is UID UID && Equals(UID); }
-
+        public override bool Equals(object obj) => obj is UID UID && Equals(UID);
         public bool Equals(UID other)
         {
             return _a == other._a &&
@@ -126,10 +133,14 @@ namespace UniqueIdentifier
                    _j == other._j &&
                    _k == other._k;
         }
+        public bool Equals(Guid other) => Equals(new UID(other));
+
+        public static bool operator ==(UID left, UID right) { return left.Equals(right); }
+        public static bool operator !=(UID left, UID right) { return !(left == right); }
 
         public override string ToString()
         {
-            return ToString(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);     
+            return ToString(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
         }
 
         /// <summary>dddddddd-dddd-dddd-dddd-dddddddddddd</summary>
@@ -164,24 +175,24 @@ namespace UniqueIdentifier
             char _22 = HexToChar(_e);
             //char _23 = '-';
             char _24 = HexToChar(_f >> 4);
-            char _25 = HexToChar(_f     );
+            char _25 = HexToChar(_f);
             char _26 = HexToChar(_g >> 4);
-            char _27 = HexToChar(_g     );
+            char _27 = HexToChar(_g);
             char _28 = HexToChar(_h >> 4);
-            char _29 = HexToChar(_h     );
+            char _29 = HexToChar(_h);
             char _30 = HexToChar(_i >> 4);
-            char _31 = HexToChar(_i     );
+            char _31 = HexToChar(_i);
             char _32 = HexToChar(_j >> 4);
-            char _33 = HexToChar(_j     );
+            char _33 = HexToChar(_j);
             char _34 = HexToChar(_k >> 4);
-            char _35 = HexToChar(_k     );
+            char _35 = HexToChar(_k);
 
             return string.Format(format, _00, _01, _02, _03, _04, _05, _06, _07, _09, _10, _11, _12, _14, _15, _16, _17, _19, _20, _21, _22, _24, _25, _26, _27, _28, _29, _30, _31, _32, _33, _34, _35);
         }
 
         internal static char HexToChar(int a)
         {
-            a = a & 0xf;
+            a = a & 0xF;
 
             return (char)((a > 9) ? a - 10 + 0x61 : a + 0x30);
         }
@@ -191,77 +202,21 @@ namespace UniqueIdentifier
             if (Guid.TryParse(value, out Guid guid))
             {
                 uid = guid;
-                
+
                 return true;
             }
 
             uid = default(UID);
-            
+
             return false;
         }
 
-        public static implicit operator UID(Guid guid) { return new UID(guid); }
-
-        public static bool operator ==(UID left, UID right) { return left.Equals(right); }
-        public static bool operator !=(UID left, UID right) { return !(left == right); }
-
-        public static UID NewUID() { return Guid.NewGuid(); }
-
-        public int CompareTo(object obj)
+        public static implicit operator UID(Guid guid) => new UID(guid);
+        public static implicit operator Guid(UID uid)
         {
-            if (obj is UID uid)
-                return CompareTo(uid);
-
-            throw new ArgumentException("Object is not a UID");
+            return new Guid(uid._a, uid._b, uid._c,
+                            uid._d, uid._e, uid._f, uid._g,
+                            uid._h, uid._i, uid._j, uid._k);
         }
-
-        public int CompareTo(UID other)
-        {
-            if (_a < other._a) return -1;
-            else if (_a > other._a) return 1;
-
-            if (_b < other._b) return -1;
-            else if (_b > other._b) return 1;
-
-            if (_c < other._c) return -1;
-            else if (_c > other._c) return 1;
-
-            if (_d < other._d) return -1;
-            else if (_d > other._d) return 1;
-
-            if (_e < other._e) return -1;
-            else if (_e > other._e) return 1;
-
-            if (_f < other._f) return -1;
-            else if (_f > other._f) return 1;
-
-            if (_g < other._g) return -1;
-            else if (_g > other._g) return 1;
-
-            if (_h < other._h) return -1;
-            else if (_h > other._h) return 1;
-
-            if (_i < other._i) return -1;
-            else if (_i > other._i) return 1;
-
-            if (_j < other._j) return -1;
-            else if (_j > other._j) return 1;
-
-            return _k < other._k ? -1 : _k > other._k ? 1 : 0;
-        }
-
-        public static readonly UID Empty = Guid.Empty;
-
-        public int      _a;
-        public short    _b;
-        public short    _c;
-        public byte     _d;
-        public byte     _e;
-        public byte     _f;
-        public byte     _g;
-        public byte     _h;
-        public byte     _i;
-        public byte     _j;
-        public byte     _k;
     }
 }
