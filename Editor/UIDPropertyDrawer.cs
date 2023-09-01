@@ -65,7 +65,7 @@ namespace UniqueIdentifier.Editor
             }
         }
 
-        static void Assign(SerializedProperty property, UID uid)
+        public static void Assign(SerializedProperty property, UID uid)
         {
             property.FindPropertyRelative(nameof(UID._a)).intValue = uid._a;
             property.FindPropertyRelative(nameof(UID._b)).intValue = uid._b;
