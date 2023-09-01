@@ -82,7 +82,7 @@ namespace UniqueIdentifier.Editor
             property.serializedObject.ApplyModifiedProperties();
         }
 
-        static UID ToUID(SerializedProperty property)
+        public static UID ToUID(SerializedProperty property)
         {
             return new UID(property.FindPropertyRelative(nameof(UID._a)).intValue,
                            (short)property.FindPropertyRelative(nameof(UID._b)).intValue,
