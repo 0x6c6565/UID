@@ -55,7 +55,27 @@ namespace UniqueIdentifier.Editor
         }
 
         static void OnEmptyUID(object userData) { Assign(userData as SerializedProperty, UID.Empty); }
-        static void OnNewUID(object userData) { Assign(userData as SerializedProperty, UID.NewUID()); }
+        static void OnNewUID(object userData) 
+        {
+            SerializedProperty property = userData as SerializedProperty;
+            if (property.serializedObject.isEditingMultipleObjects)
+            {
+                foreach (UnityEngine.Object @Object in property.serializedObject.targetObjects)
+                {
+                    SerializedObject serializedObject = new SerializedObject(@Object);
+        
+                    SerializedProperty serializedProperty = serializedObject.FindProperty(property.propertyPath);
+                    if (null != serializedProperty)
+                    {
+                        Assign(serializedProperty, UID.NewUID());
+                    }
+                }
+            }
+            else
+            {
+                Assign(userData as SerializedProperty, UID.NewUID());
+            }
+        }
         static void OnCopyUID(object userData) { systemCopyBuffer = ((UID)userData).ToString(); }
         static void OnPasteUID(object userData)
         {
