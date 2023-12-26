@@ -138,10 +138,7 @@ namespace UniqueIdentifier
         public static bool operator ==(UID left, UID right) { return left.Equals(right); }
         public static bool operator !=(UID left, UID right) { return !(left == right); }
 
-        public override string ToString()
-        {
-            return ToString(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
-        }
+        public override string ToString() => Empty == this ? "UID.Empty" : ToString(_a, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k);
 
         /// <summary>dddddddd-dddd-dddd-dddd-dddddddddddd</summary>
         /// <returns>The formating id.</returns>
