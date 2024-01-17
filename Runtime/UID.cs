@@ -1,9 +1,3 @@
-#if !(UNITY_EDITOR || UNITY_STANDALONE)
-#define CAN_SKIP_INIT
-#endif // !(UNITY_EDITOR || UNITY_STANDALONE)
-
-#define USE_FIXED_BYTES
-
 using System;
 using System.Runtime.InteropServices;
 
@@ -11,25 +5,19 @@ namespace UniqueIdentifier
 {
     [Serializable]
     [StructLayout(LayoutKind.Explicit, Pack = 1, Size = 16)]
-    public
-#if USE_FIXED_BYTES
-        unsafe
-#endif // USE_FIXED_BYTES
-        struct UID : IEquatable<UID>, IEquatable<Guid>
+    public unsafe struct UID : IEquatable<UID>, IEquatable<Guid>, IComparable<UID>, IComparable<Guid>
     {
         public static readonly UID Empty = Guid.Empty;
 
-#if USE_FIXED_BYTES
+        [FieldOffset(0)] public Guid guid;
+
         [FieldOffset(0)] public fixed byte value[16];
-#endif // USE_FIXED_BYTES
 
         [FieldOffset(0)] public int _a;
         [FieldOffset(4)] public short _b;
         [FieldOffset(6)] public short _c;
 
-#if USE_FIXED_BYTES
         [FieldOffset(8)] public fixed byte bytes[8];
-#endif // USE_FIXED_BYTES
 
         [FieldOffset(8)] public byte _d;
         [FieldOffset(9)] public byte _e;
@@ -44,6 +32,8 @@ namespace UniqueIdentifier
 
         public UID(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
         {
+            guid = default;
+
             _a = a;
             _b = b;
             _c = c;
@@ -61,12 +51,8 @@ namespace UniqueIdentifier
 
         public UID(byte[] bytes)
         {
-#if USE_FIXED_BYTES && CAN_SKIP_INIT
-            fixed (byte * pBytes = value)
-            {
-                Buffer.MemoryCopy(&bytes, pBytes, 16, 16);
-            }
-#else // if (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
+            guid = default;
+
             unsafe
             {
                 _a = ((int)bytes[3] << 24) | ((int)bytes[2] << 16) | ((int)bytes[1] << 8) | bytes[0];
@@ -81,34 +67,24 @@ namespace UniqueIdentifier
                 _j = bytes[14];
                 _k = bytes[15];
             }
-#endif // (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
         }
 
         public UID(Guid guid)
         {
-#if USE_FIXED_BYTES && CAN_SKIP_INIT
-            fixed (byte * pBytes = value)
-            {
-                Buffer.MemoryCopy(&guid, pBytes, 16, 16);
-            }
-#else // if (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
-            unsafe
-            {
-                byte* b = (byte*)&guid;
+            _a = default;
+            _b = default;
+            _c = default;
 
-                _a = ((int)b[3] << 24) | ((int)b[2] << 16) | ((int)b[1] << 8) | b[0];
-                _b = (short)(((int)b[5] << 8) | b[4]);
-                _c = (short)(((int)b[7] << 8) | b[6]);
-                _d = b[8];
-                _e = b[9];
-                _f = b[10];
-                _g = b[11];
-                _h = b[12];
-                _i = b[13];
-                _j = b[14];
-                _k = b[15];
-            }
-#endif // (!USE_FIXED_BYTES || !CAN_SKIP_INIT)
+            _d  = default;
+            _e  = default;
+            _f  = default;
+            _g  = default;
+            _h  = default;
+            _i  = default;
+            _j  = default;
+            _k  = default;
+
+            this.guid = guid;
         }
 
         /// <summary>Implementation to mirror <see cref="Guid.GetHashCode"/>.</summary>
@@ -134,6 +110,9 @@ namespace UniqueIdentifier
                    _k == other._k;
         }
         public bool Equals(Guid other) => Equals(new UID(other));
+
+        public int CompareTo(UID other) => guid.CompareTo(other);
+        public int CompareTo(Guid other) => guid.CompareTo(other);
 
         public static bool operator ==(UID left, UID right) { return left.Equals(right); }
         public static bool operator !=(UID left, UID right) { return !(left == right); }
@@ -209,11 +188,6 @@ namespace UniqueIdentifier
         }
 
         public static implicit operator UID(Guid guid) => new UID(guid);
-        public static implicit operator Guid(UID uid)
-        {
-            return new Guid(uid._a, uid._b, uid._c,
-                            uid._d, uid._e, uid._f, uid._g,
-                            uid._h, uid._i, uid._j, uid._k);
-        }
+        public static implicit operator Guid(UID uid) => uid.guid;
     }
 }
